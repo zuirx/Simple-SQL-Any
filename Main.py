@@ -1,28 +1,19 @@
-import tkinter as tk, pandas as pd, pyodbc, re
+import tkinter as tk, re
 from tkinter import ttk, messagebox
+from _Query import query_db
+from _Config import config_setting
+from _Autosave import load_query_from_autosave
 
-config = {}
-
-def query_db(query,limit):
-    db = pyodbc.connect(f"Driver={config['driver']};"
-                                f"UID={config['uid']};"
-                                f"PASSWORD={config['password']};"
-                                f"DatabaseName={config['database']};"
-                                f"ServerName={config['server']};"
-                                f"Integrated={config['integrated']};"
-                                f"Encryption={config['encryption']};"
-                                f"Host={config['host']}")
-    df = pd.read_sql_query(query, db)
-    return df.head(limit)
+config = config_setting()
 
 def highlight_syntax():
     query_text.tag_remove("keyword", "1.0", tk.END)
     
     keywords = [
-        "SELECT", "FROM", "WHERE", "INSERT", "UPDATE", "DELETE",
-        "CREATE", "DROP", "ALTER", "JOIN", "INNER", "OUTER",
-        "LEFT", "RIGHT", "ON", "AND", "OR", "NOT", "NULL",
-        "LIKE", "IN", "AS", "ORDER", "BY", "GROUP", "HAVING", "LIMIT", "DECLARE", "SET", "BETWEEN"
+        "SELECT", "FROM", "WHERE", "INSERT", "UPDATE", "DELETE", "BETWEEN",
+        "CREATE", "DROP", "ALTER", "JOIN", "INNER", "OUTER", "SET",
+        "LEFT", "RIGHT", "ON", "AND", "OR", "NOT", "NULL", "DECLARE",  
+        "LIKE", "IN", "AS", "ORDER", "BY", "GROUP", "HAVING", "LIMIT"
     ]
     
     for keyword in keywords:
@@ -37,17 +28,17 @@ def highlight_syntax():
             query_text.tag_add("keyword", pos, end_index)
             start_index = end_index
 
-def limit_lines(limit):
+def limit_lines():
     content = query_text.get("1.0", "end-1c")
     lines = content.split("\n")
-    if len(lines) > 100:
-        truncated_content = "\n".join(lines[:100])
+    if len(lines) > config['lines_limit']:
+        truncated_content = "\n".join(lines[:config['lines_limit']])
 
         query_text.delete("1.0", tk.END)
         query_text.insert("1.0", truncated_content)
 
 def on_key_release(event=None):
-    limit = 100 # config['lines_limit']
+    limit = config['lines_limit']
     limit_lines(limit)
     highlight_syntax()
 
@@ -55,10 +46,10 @@ def execute_query():
     limit_lines = 100
     query = query_text.get("1.0", tk.END).strip()
     if not query:
-        messagebox.showwarning("Input Error", "Please inform a valid SQL query.")
+        messagebox.showwarning("Input Error", "Please inform something.")
         return
     try:
-        df = query_db(query, limit_lines)
+        df = query_db(config, query, config['lines_limit'])
         for item in tree.get_children(): 
             tree.delete(item)
         
@@ -73,14 +64,6 @@ def execute_query():
             tree.insert("", tk.END, values=list(row))
             
     except Exception as e: show_error_with_copy(e,query)
-
-def load_query_from_config(file_path="autosave.txt"): # config['autosave_path']
-    try:
-        with open(file_path, "r") as f:
-            config_query = f.read()
-        query_text.insert("1.0", config_query)
-    except Exception as e:
-        messagebox.showerror("Error trying to read autosave", f"Erro:\n{e}")
 
 def on_closing():
     try:
@@ -102,7 +85,7 @@ def show_error_with_copy(error_text,query):
     gpt_error_text = f"""
         The following query: {query}
         Gave me the following error: {error_text}
-        Help me solve this error, remembering that it is a query in SQL Anywhere 17.
+        Help me solve this error, remembering that it is a query in {config['driver']}.
     """
     
     def copy_error():
@@ -122,7 +105,7 @@ def show_error_with_copy(error_text,query):
     gpt_copy_button = tk.Button(button_frame, text="Copy Error for AI Prompt", command=copy_gpt)
     gpt_copy_button.pack(side=tk.LEFT, padx=(0, 10))
     
-    close_button = tk.Button(button_frame, text="Fechar", command=error_window.destroy)
+    close_button = tk.Button(button_frame, text="Close", command=error_window.destroy)
     close_button.pack(side=tk.LEFT)
 
 root = tk.Tk()
@@ -144,7 +127,7 @@ query_text.configure(yscrollcommand=query_scrollbar.set)
 
 query_text.bind("<KeyRelease>", on_key_release)
 
-load_query_from_config("autosave.txt") # config['autosave_path']
+load_query_from_autosave(config['autosave_path'], query_text)
 
 execute_button = tk.Button(input_frame, text="Execute Query (F9)", command=execute_query)
 execute_button.pack()
