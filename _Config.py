@@ -24,5 +24,6 @@ def config_setting():
     except Exception as e:
         print(f"Erro ao criar o arquivo: {e}")
 
-    config = json.load(open(config_path, 'r', encoding='utf8'))
+def get_config():
+    config = json.load(open("config.json", 'r', encoding='utf8'))
     return config

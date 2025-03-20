@@ -1,10 +1,11 @@
 import tkinter as tk, re
 from tkinter import ttk, messagebox
-from _Query import query_db
-from _Config import config_setting
+from _DB import query_db, configure_db
+from _Config import config_setting, get_config
 from _Autosave import load_query_from_autosave
 
-config = config_setting()
+config_setting()
+config = get_config()
 
 def highlight_syntax():
     query_text.tag_remove("keyword", "1.0", tk.END)
@@ -131,6 +132,9 @@ load_query_from_autosave(config['autosave_path'], query_text)
 
 execute_button = tk.Button(input_frame, text="Execute Query (F9)", command=execute_query)
 execute_button.pack()
+
+configure_button = tk.Button(input_frame, text="Configure", command=configure_db)
+configure_button.pack(side="left",padx=1)
 
 table_frame = tk.Frame(root, padx=10, pady=10)
 table_frame.pack(fill="both", expand=True)

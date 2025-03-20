@@ -1,4 +1,4 @@
-import pyodbc, pandas as pd
+import pyodbc, pandas as pd, os
 
 def query_db(config, query,limit):
     db = pyodbc.connect(f"Driver={config['driver']};"
@@ -11,3 +11,6 @@ def query_db(config, query,limit):
                         f"Host={config['host']}")
     df = pd.read_sql_query(query, db)
     return df.head(limit)
+
+def configure_db():
+    os.startfile("config.json")
