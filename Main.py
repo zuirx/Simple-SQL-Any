@@ -63,7 +63,9 @@ def execute_query():
         
         for _, row in df.iterrows():
             tree.insert("", tk.END, values=list(row))
-            
+
+        df.to_csv('Arquivo.csv', index=False, encoding='utf-8', sep=',', decimal='.')
+
     except Exception as e: show_error_with_copy(e,query)
 
 def on_closing():
